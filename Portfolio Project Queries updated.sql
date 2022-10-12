@@ -111,39 +111,44 @@ WHERE dea.Continent IS NOT NULL
 SELECT *,(RollingPeopleVaccinated/Population)*100
 FROM PopvsVac
 
---TEMP TABLE
-
+-- Using Temp Table to perform Calculation on Partition By in previous query
 
 DROP Table if exists #PercentPopulationVaccinated
-CREATE TABLE #PercentPopulationVaccinated
+Create Table #PercentPopulationVaccinated
 (
 Continent nvarchar(255),
-location nvarchar(255),
-date datetime,
-population numeric,
-new_vaccinations numeric,
+Location nvarchar(255),
+Date datetime,
+Population numeric,
+New_vaccinations numeric,
 RollingPeopleVaccinated numeric
 )
 
-INSERT INTO #PercentPopulationVaccinated
-SELECT dea.Continent, dea.location,dea.date,dea.population,vac.new_vaccinations,SUM(CONVERT(bigint, vac.new_vaccinations )) OVER (Partition by dea.Location ORDER BY dea.Location,dea.Date) 
-AS RollingPeopleVaccinated
-FROM [dbo].[CovidDeaths] dea
-JOIN [dbo].[CovidVaccinations] vac
-ON dea.Location=vac.Location
-and dea.date=vac.date
-WHERE dea.Continent IS NOT NULL
+Insert into #PercentPopulationVaccinated
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+, SUM(CONVERT(int,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
+--, (RollingPeopleVaccinated/population)*100
+From PortfolioProject..CovidDeaths dea
+Join PortfolioProject..CovidVaccinations vac
+	On dea.location = vac.location
+	and dea.date = vac.date
+--where dea.continent is not null 
+--order by 2,3
 
-SELECT *,(RollingPeopleVaccinated/Population)*100
-FROM #PercentPopulationVaccinated
+Select *, (RollingPeopleVaccinated/Population)*100
+From #PercentPopulationVaccinated
 
---Create View to store data to use later Visualizations
 
-CREATE VIEW PercentPopulationVaccinated as
-SELECT dea.Continent, dea.location,dea.date,dea.population,vac.new_vaccinations,SUM(CONVERT(bigint, vac.new_vaccinations )) OVER (Partition by dea.Location ORDER BY dea.Location,dea.Date) 
-AS RollingPeopleVaccinated
-FROM [dbo].[CovidDeaths] dea
-JOIN [dbo].[CovidVaccinations] vac
-ON dea.Location=vac.Location
-and dea.date=vac.date
-WHERE dea.Continent IS NOT NULL
+
+
+-- Creating View to store data for later visualizations
+
+Create View PercentPopulationVaccinated as
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+, SUM(CONVERT(int,vac.new_vaccinations)) OVER (Partition by dea.Location Order by dea.location, dea.Date) as RollingPeopleVaccinated
+--, (RollingPeopleVaccinated/population)*100
+From PortfolioProject..CovidDeaths dea
+Join PortfolioProject..CovidVaccinations vac
+	On dea.location = vac.location
+	and dea.date = vac.date
+where dea.continent is not null 
